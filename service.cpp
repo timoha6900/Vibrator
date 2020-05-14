@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,35 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "android.hardware.vibrator@1.0-service"
+#define LOG_TAG "android.hardware.vibrator@1.3-service.example"
 
-#include <android/hardware/vibrator/1.0/IVibrator.h>
+#include <android/hardware/vibrator/1.3/IVibrator.h>
 #include <hidl/HidlTransportSupport.h>
-#include <Vibrator.h>
 
-using android::hardware::vibrator::V1_0::IVibrator;
+#include "Vibrator.h"
+
 using android::hardware::configureRpcThreadpool;
 using android::hardware::joinRpcThreadpool;
-
+using android::hardware::vibrator::V1_3::IVibrator;
+using android::hardware::vibrator::V1_3::implementation::Vibrator;
 using namespace android;
-using namespace android::hardware::vibrator::V1_0::implementation;
+
+status_t registerVibratorService() {
+    sp<IVibrator> vibrator = new Vibrator();
+
+    return vibrator->registerAsService();
+}
 
 int main() {
-	android::sp<IVibrator> service = new Vibrator();
+    configureRpcThreadpool(1, true);
+    status_t status = registerVibratorService();
 
-	configureRpcThreadpool(1, true /* callerWillJoin */);
+    if (status != OK) {
+        return status;
+    }
 
-	// Register our service -- if somebody is already registered by our name,
-	// they will be killed (their thread pool will throw an exception).
-	status_t status = service->registerAsService();
-	if(status == OK) {
-		ALOGD("Vibrator is ready.");
-		joinRpcThreadpool();
-	} else {
-		ALOGE("Could not register service (%d).", status);
-	}
+    joinRpcThreadpool();
 
-	// In normal operation, we din't expect the thread pool to exit
-	ALOGE("Vibrator is shutting down");
-	return 1;
+    return 1;
 }
